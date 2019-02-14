@@ -1,0 +1,159 @@
+// The Initialisation
+SEQUENCE InitSystem
+
+    SET Battery status is ON 
+        FOR EACH Battery in Battery Columns
+            FOR EACH Elevator in Column Elevators
+        	END FOR
+        END FOR
+	SET column1 IS covering floor <= 16
+	SET column2 IS covering floor 17 TO floor 33
+	SET column3 IS covering floor 34 TO floor 50
+	SET column4 IS covering floor 51 TO floor 66
+    SET Elevator starting position TO 1
+	SET Elevator status TO IDLE
+    SET Elevator Doors TO CLOSE
+
+// For CallBtnElevators
+SEQUENCE CallBtnElevators USING RequestFloorBtn AND column
+
+	CALL MainPanelFloor RETURNING column
+
+END SEQUENCE
+
+// For MainPanelFloor
+SEQUENCE MainPanelFloor USING RequestFloorBtn AND columns
+	
+	FOR EACH column IN Battery columns
+		IF RequestFloorBtn <= 16 THEN
+		SET column TO column1
+		ADD RequestFloorBtn TO FloorList
+			RETURN column
+		ELSE IF RequestFloorBtn > 16 AND <= 33 THEN
+		SET column TO column2
+		ADD RequestFloorBtn TO FloorList
+			RETURN column
+		ELSE IF RequestFloorBtn > 33 AND <= 50 THEN
+		SET column TO column3
+		ADD RequestFloorBtn TO FloorList
+			RETURN column
+		ELSE IF RequestFloorBtn > 50 AND <= 66 THEN
+		SET column TO column4
+		ADD RequestFloorBtn TO FloorList
+			RETURN column
+		END IF
+	END FOR
+
+END SEQUENCE
+
+// For BestElevator
+SEQUENCE BestElevator USING Elevator AND floor AND status AND direction
+
+	FOR EACH Elevator IN column
+		IF ElevatorFloor status IS IDLE THEN
+			RETURN Elevator
+		ELSE IF ElevatorFloor status IS MOVING AND direction IS DOWN THEN
+			CALL SendRequest WITH ElevatorFloor AND FloorList AND status
+				RETURN
+		END IF
+	END FOR
+
+END SEQUENCE
+
+// For SendRequest
+SEQUENCE SendRequest USING ElevatorFloor AND FloorList AND status
+	IF CallButton < ElevatorFloor AND status IS MOVING THEN
+		ADD CallButton TO FloorList
+		COMPUTE FloorList BY DESCENDING
+	END IF
+	RETURN FloorList
+END SEQUENCE
+
+// For FindLeastBusy
+SEQUENCE FindLeastBusy
+
+	SET ListLength TO TotalFloor
+		FOR EACH Elevator IN Elevators
+			IF ListLength < Length of FloorList
+				SET ListLength TO Length of Elevator FloorList
+			END IF
+		END FOR
+		DETERMINE LeastBusy WITH ListLength
+		RETURN LeastBusy
+
+END SEQUENCE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// For FindBestColums
+SEQUENCE FindBestColumns USING CallBtnFloor
+
+    CALL BtnLightOn WITH CallBtnFloor RETURNING CallBtnFloor
+	CALL FindBestColumns WITH CallBtnFloor 
+
+END SEQUENCE
+
+
+
+
+
+
+// For turn on the btn light
+SEQUENCE BtnLightOn USING CallBtnFloor
+
+	CALL FindCallBtn WITH CallBtnFloor RETURNING CallBtnFloor
+    SET BtnLight ON
+
+END SEQUENCE
+
+// For turn off the btn light
+SEQUENCE BtnLightOff USING CallBtnFloor
+
+	CALL FindCallBtn WITH CallBtnFloor RETURNING CallBtnFloor
+    SET BtnLight OFF
+
+END SEQUENCE
+
+// For FindCallBtn
+SEQUENCE FindCallBtn USING CallBtnFloor
+	FOR EACH CallButton IN CallButtons
+		IF CallBtnFloor IS Pressed THEN
+			RETURN CallBtnFloor
+		END IF
+	END FOR
+
+END SEQUENCE
+
+// For FindNearestElevator
+SEQUENCE FindNearestElevator USING direction AND floor
+	FOR EACH CallButton IN CallButtons
+		IF CallBtnFloor IS Pressed THEN
+			RETURN CallBtnFloor
+		END IF
+	END FOR
+
+END SEQUENCE
+
